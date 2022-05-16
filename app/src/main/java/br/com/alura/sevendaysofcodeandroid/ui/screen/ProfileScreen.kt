@@ -1,6 +1,8 @@
 package br.com.alura.sevendaysofcodeandroid.ui.screen
 
+import android.util.Log
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -24,7 +26,6 @@ import androidx.compose.ui.unit.sp
 import br.com.alura.sevendaysofcodeandroid.R
 import br.com.alura.sevendaysofcodeandroid.model.GitHubRepo
 import br.com.alura.sevendaysofcodeandroid.model.User
-import br.com.alura.sevendaysofcodeandroid.ui.components.UserItem
 import br.com.alura.sevendaysofcodeandroid.ui.components.RepositoryItem
 import br.com.alura.sevendaysofcodeandroid.ui.sampledata.sampleUsers
 import br.com.alura.sevendaysofcodeandroid.ui.theme.DefaultDarkBg
@@ -37,26 +38,37 @@ import kotlinx.coroutines.launch
 fun ProfileScreen(
     viewModel: ProfileVM,
     userId: String? = null,
-    onClickUserProfile: (user: User) -> Unit = {}
+    onFollowersClick: (user: String?) -> Unit = {},
+    onFollowingClick: (user: String?) -> Unit = {},
+    onUserTitleClick: () -> Unit = {},
+    onFailureLoadingUser: () -> Unit = {}
 ) {
     val uiState = viewModel.uiState
-    val currentUser = viewModel.currentUser
-    val scope = rememberCoroutineScope()
     userId?.let {
         LaunchedEffect(null) {
-            viewModel.loadUser(it)
+            viewModel.loadUser(
+                it,
+                onFailureUserLoading = onFailureLoadingUser
+            )
         }
     }
+    val currentUser = viewModel.currentUser
+    val scope = rememberCoroutineScope()
     ProfileWithError(
         uiState,
         currentUser,
-        onClick = {
-            onClickUserProfile(it)
-        },
         onLogoutClick = {
             scope.launch {
                 viewModel.logout()
             }
+        }, onFollowersClick = {
+            onFollowersClick(userId)
+        },
+        onFollowingClick = {
+            onFollowingClick(userId)
+        },
+        onUserTitleClick = {
+            onUserTitleClick()
         }
     )
 }
@@ -65,8 +77,10 @@ fun ProfileScreen(
 private fun ProfileWithError(
     uiState: ProfileUiState,
     currentUser: String? = null,
-    onClick: (user: User) -> Unit = {},
-    onLogoutClick: () -> Unit = {}
+    onLogoutClick: () -> Unit = {},
+    onFollowersClick: () -> Unit = {},
+    onFollowingClick: () -> Unit = {},
+    onUserTitleClick: () -> Unit = {}
 ) {
     if (uiState.error != null) {
         Box(
@@ -86,7 +100,10 @@ private fun ProfileWithError(
             topBar = {
                 TopAppBar(title = {
                     if (currentUser != null) {
-                        Text(text = currentUser)
+                        Text(
+                            text = currentUser, modifier = Modifier
+                                .clickable(onClick = onUserTitleClick)
+                        )
                     }
                 }, actions = {
                     IconButton(onClick = onLogoutClick) {
@@ -97,7 +114,11 @@ private fun ProfileWithError(
                     }
                 })
             }) {
-            Profile(uiState, onClick)
+            Profile(
+                uiState,
+                onFollowersClick = onFollowersClick,
+                onFollowingClick = onFollowingClick
+            )
         }
     }
 }
@@ -105,14 +126,19 @@ private fun ProfileWithError(
 @Composable
 private fun Profile(
     uiState: ProfileUiState,
-    onClick: (user: User) -> Unit = {}
+    onFollowingClick: () -> Unit = {},
+    onFollowersClick: () -> Unit = {}
 ) {
     LazyColumn(
         Modifier
             .fillMaxSize()
     ) {
         item {
-            ProfileHeader(uiState)
+            ProfileHeader(
+                uiState,
+                onFollowingClick = onFollowingClick,
+                onFollowersClick = onFollowersClick
+            )
         }
         item {
             if (uiState.repositories.isNotEmpty()) {
@@ -135,9 +161,12 @@ private fun Profile(
 }
 
 
-
 @Composable
-private fun ProfileHeader(uiState: ProfileUiState) {
+private fun ProfileHeader(
+    uiState: ProfileUiState,
+    onFollowingClick: () -> Unit = {},
+    onFollowersClick: () -> Unit = {}
+) {
     val imageSize by remember {
         mutableStateOf(120.dp)
     }
@@ -195,14 +224,22 @@ private fun ProfileHeader(uiState: ProfileUiState) {
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
             Column(
-                modifier = Modifier.padding(8.dp),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(onClick = onFollowingClick)
+                    .padding(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(text = "Seguindo")
                 Text(text = uiState.followingCount)
             }
             Column(
-                modifier = Modifier.padding(8.dp),
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable {
+                        onFollowersClick()
+                    }
+                    .padding(8.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(text = "Seguidores")
@@ -236,7 +273,7 @@ fun ProfileWithErrorPreview() {
             name = "Alex Felipe",
             bio = "Instructor and Software Developer at @alura-cursos",
             error = "Test error"
-        ),
+        )
     )
 }
 

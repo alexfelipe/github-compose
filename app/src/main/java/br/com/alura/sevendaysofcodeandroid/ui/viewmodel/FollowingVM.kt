@@ -10,19 +10,19 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
 @HiltViewModel
-class FollowersVM @Inject constructor(
+class FollowingVM @Inject constructor(
     private val repository: UsersRepository,
 ) : ViewModel() {
 
     var uiState: FollowersUiState by mutableStateOf(FollowersUiState())
 
-    suspend fun findFollowersBy(user: String) {
+    suspend fun findFollowingBy(user: String) {
         uiState = uiState
-            .copy(users = repository.findFollowersUsers(user))
+            .copy(users = repository.findFollowingUsers(user))
     }
 
 }
 
-data class FollowersUiState(
+data class FollowingUiState(
     val users: List<User> = emptyList()
 )

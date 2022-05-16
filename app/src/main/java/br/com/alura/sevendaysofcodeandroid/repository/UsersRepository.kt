@@ -17,8 +17,8 @@ class UsersRepository @Inject constructor(
         }
     }
 
-    suspend fun findFollowingUsers(user: User): List<User> {
-        return service.findFollowingBy(user.login).map {
+    suspend fun findFollowingUsers(user: String): List<User> {
+        return service.findFollowingBy(user).map {
             it.toProfile()
         }
     }

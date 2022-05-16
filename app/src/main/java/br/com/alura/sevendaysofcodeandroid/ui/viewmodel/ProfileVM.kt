@@ -29,12 +29,15 @@ class ProfileVM @Inject constructor(
     var uiState by mutableStateOf(ProfileUiState())
         private set
 
-    suspend fun loadUser(id: String) {
+    suspend fun loadUser(
+        id: String,
+        onFailureUserLoading: () -> Unit
+    ) {
         repository.findUserById(id)?.run {
             uiState = ProfileUiState(this)
             findFollowingUsersBy(this)
             findRepositoriesBy(this)
-        }
+        } ?: onFailureUserLoading()
         currentUser = dataStore.data.first()[signedUser]
     }
 
@@ -44,7 +47,7 @@ class ProfileVM @Inject constructor(
     }
 
     private suspend fun findFollowingUsersBy(user: User) {
-        val users = repository.findFollowingUsers(user)
+        val users = repository.findFollowingUsers(user.login)
         uiState = uiState.copy(followingUsers = users)
     }
 
@@ -66,7 +69,7 @@ data class ProfileUiState(
     val followingCount: String = "",
     val error: String? = null,
     val followingUsers: List<User> = emptyList(),
-    val repositories: List<GitHubRepo> = emptyList(),
+    val repositories: List<GitHubRepo> = emptyList()
 ) {
 
     constructor(user: User) : this(
